@@ -69,7 +69,7 @@ struct process_info_t
 std::string get_pid(const std::string & proc_name);
 int process_cpu(const std::string &pid_c);
 int resources_usage(std::vector <proc_info> *config, int n_freq, int slepp_t_ms);
-void get_cpu_section(std::vector <proc_info> *config, int out_arr[]);
+void get_cpu_section(std::vector <process_info_t> &config, int out_arr[]);
 void get_mem_section(std::vector <proc_info> *config, int out_virt_arr[], int out_rss_arr[], float out_rss_perc[]);
 int MEM_usage(char *pid, int *virt_out, int *rss_out, float *rss_in_perc);
 std::string get_num_frm_str(const std::string & str);

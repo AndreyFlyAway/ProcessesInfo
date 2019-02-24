@@ -6,7 +6,7 @@
  * @date 2018-06-27
  */
 
-#include "process_info.h"
+#include "ProcessInfo.h"
 #define PROC_FOLDER   "/proc/"
 #define PROC_NAME                   "/comm"
 #define PROC_STAT_FOLDER   "/proc/stat"
@@ -44,19 +44,23 @@ int main(int argc, char * argv[])
 {
     std::string str {"kek 12345"};
     std::string buf {};
-    buf = get_pid("yakuake");
-    std::cout << buf << std::endl;
     load_config(g_processes_data, DEFAULT_CONFIG_FILE_PATH);
+
+    int out_arr[g_processes_data.size()];
+
     for (u_int i = 0; i < g_processes_data.size() ; i++)
     {
         g_processes_data[i].pid = get_pid(g_processes_data[i].name);
     }
 
-//    for (u_int i = 0; i < g_processes_data.size() ; i++)
-//        std::cout << g_processes_data[i].name << ": " << g_processes_data[i].pid << std::endl;
+    get_cpu_section(g_processes_data, out_arr);
 
-    int res = process_cpu(g_processes_data[0].pid);
-    std::cout << res << std::endl;
+    for (u_int i = 0; i < g_processes_data.size() ; i++)
+    {
+        std::cout << g_processes_data[i].name << ": " << g_processes_data[i].pid << std::endl;
+        std::cout << out_arr[i]  << std::endl;
+
+    }
 }
 
 /* получение общего количества памяти на машине */
@@ -284,13 +288,13 @@ int process_cpu(const std::string &pid_c)
     return res;
 }
 
-/* получение среза текущего процесорного времени по списку процессов
-void get_cpu_section(std::vector <process_info_t> *config, int out_arr[])
+/* получение среза текущего процесорного времени по списку процессов */
+void get_cpu_section(std::vector <process_info_t> &config, int out_arr[])
 {
-    for (u_int i = 0; i < config->size() ; ++i)
+    for (u_int i = 0; i < config.size() ; ++i)
     {
-        out_arr[i] = process_cpu((config->at(i)).pid);
-        printf("out_arr %d %s\n", out_arr[i], (config->at(i)).pid);
+        // TODO: investigate why I used at(i)
+        out_arr[i] = process_cpu((config.at(i)).pid);
     }
 
-}*/
+}
