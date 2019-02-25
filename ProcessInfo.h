@@ -77,5 +77,5 @@ int load_config(std::vector <process_info_t> &config, const std::string & conf_f
 int copy_word(char * str_in, char * str_out);
 std::string get_total_mem(void);
 int get_system_info(char * str_out);
-//int proc_stat(void);
+int & proc_stat(int &cpu_total, int &idle);
 //int check_process(void);

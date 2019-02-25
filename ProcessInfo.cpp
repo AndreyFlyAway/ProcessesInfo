@@ -61,6 +61,11 @@ int main(int argc, char * argv[])
         std::cout << out_arr[i]  << std::endl;
 
     }
+    int cpu_total {};
+    int idle {};
+    proc_stat(cpu_total, idle);
+    std::cout << "totatl cpu: " << cpu_total << std::endl;
+    std::cout << "totatl cpu: " << idle << std::endl;
 }
 
 /* получение общего количества памяти на машине */
@@ -289,6 +294,11 @@ int process_cpu(const std::string &pid_c)
 }
 
 /* получение среза текущего процесорного времени по списку процессов */
+/**
+ * gets consumption of CPU for all processes
+ * @param config config for each process
+ * @param out_arr buffer where will be saved information
+ */
 void get_cpu_section(std::vector <process_info_t> &config, int out_arr[])
 {
     for (u_int i = 0; i < config.size() ; ++i)
@@ -297,4 +307,54 @@ void get_cpu_section(std::vector <process_info_t> &config, int out_arr[])
         out_arr[i] = process_cpu((config.at(i)).pid);
     }
 
+}
+
+/* вычисление текущей загруженности процессора */
+int & proc_stat(int &cpu_total, int &idle)
+{
+    using namespace std;
+
+    cpu_total = 0;	// собираю все данные из stat с преобразованием в float
+    bool stop_search = false; // флаг прекращения цикла поиска
+    char ch {' '};
+    string::size_type pos {};
+    string::size_type word_found_pos {};
+    string::size_type initialPos {};
+
+    ifstream proc_file;
+    string proc_stat_value; // для хранени данных из файла
+    vector <string> procstat_list; // для хранения результатов, полученных из /proc/stat
+
+    proc_file.open(PROC_STAT_FOLDER); // jnrhsdf. файл
+    if (proc_file.is_open())
+    {
+        /* вытаскиваю данные из файла */
+        char *getline_res; // для хранения результата функции fgetsyy
+        getline(proc_file, proc_stat_value);
+
+        while ( (getline_res != NULL) && !stop_search) // буду читать файла пока не дойду до конча или не попаду в if
+        {
+            pos = proc_stat_value.find("cpu"); // ищу нужную строку
+            if (pos != string::npos) // если строка найдена, то провожу парсинг
+            {
+                /* произвожу парсинг */
+                word_found_pos = proc_stat_value.find(ch);
+                while( word_found_pos != string::npos )
+                {
+                    procstat_list.push_back(proc_stat_value.substr( initialPos, word_found_pos - initialPos + 1 ) );
+                    initialPos = word_found_pos + 1;
+                    word_found_pos = proc_stat_value.find(ch, initialPos);
+                }
+                break;
+            }
+            getline(proc_file, proc_stat_value);
+        }
+    }
+    proc_file.close();
+    for(int i=2; i <=9; ++i)
+    {
+        cpu_total += stoi(procstat_list[i]);
+    }
+    idle = stoi(procstat_list[5]);
+    return cpu_total;
 }
