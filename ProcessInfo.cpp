@@ -261,7 +261,6 @@ int process_cpu(const std::string &pid_c)
     int res {-1}; // храню результат сложения utime и stime
     std::string::size_type pos {};
     std::string::size_type initialPos {};
-    char ch {' '}; // split line by this character
 
     std::vector<std::string> stat_values_list;
     std::ifstream stat_file;
@@ -277,14 +276,7 @@ int process_cpu(const std::string &pid_c)
     {
 
         std::getline(stat_file, getline_res);
-        pos = getline_res.find(ch);
-        while( pos != std::string::npos )
-        {
-            stat_values_list.push_back(getline_res.substr( initialPos, pos - initialPos + 1 ) );
-            initialPos = pos + 1;
-            pos = getline_res.find( ch, initialPos );
-        }
-
+        split_string(getline_res, stat_values_list);
         res = std::stoi(stat_values_list[13]) + std::stoi(stat_values_list[14]);
     }
     else
@@ -310,13 +302,19 @@ void get_cpu_section(std::vector <process_info_t> &config, int out_arr[])
 }
 
 /* вычисление текущей загруженности процессора */
+/**
+ * calculates currnet CPU consumption
+ * @param cpu_total
+ * @param idle
+ * @return
+ */
 int & proc_stat(int &cpu_total, int &idle)
 {
     using namespace std;
 
     cpu_total = 0;	// собираю все данные из stat с преобразованием в float
     bool stop_search = false; // флаг прекращения цикла поиска
-    char ch {' '};
+
     string::size_type pos {};
     string::size_type word_found_pos {};
     string::size_type initialPos {};
@@ -329,25 +327,19 @@ int & proc_stat(int &cpu_total, int &idle)
     if (proc_file.is_open())
     {
         /* вытаскиваю данные из файла */
-        char *getline_res; // для хранения результата функции fgetsyy
         getline(proc_file, proc_stat_value);
 
-        while ( (getline_res != NULL) && !stop_search) // буду читать файла пока не дойду до конча или не попаду в if
+        while ( getline(proc_file, proc_stat_value) && !stop_search) // буду читать файла пока не дойду до конча или не попаду в if
         {
             pos = proc_stat_value.find("cpu"); // ищу нужную строку
             if (pos != string::npos) // если строка найдена, то провожу парсинг
             {
                 /* произвожу парсинг */
-                word_found_pos = proc_stat_value.find(ch);
-                while( word_found_pos != string::npos )
-                {
-                    procstat_list.push_back(proc_stat_value.substr( initialPos, word_found_pos - initialPos + 1 ) );
-                    initialPos = word_found_pos + 1;
-                    word_found_pos = proc_stat_value.find(ch, initialPos);
-                }
+                split_string(proc_stat_value, procstat_list);
+
                 break;
             }
-            getline(proc_file, proc_stat_value);
+//            getline(proc_file, proc_stat_value);
         }
     }
     proc_file.close();
@@ -357,4 +349,30 @@ int & proc_stat(int &cpu_total, int &idle)
     }
     idle = stoi(procstat_list[5]);
     return cpu_total;
+}
+
+/**
+ * makes a list of the words in the string, separated by a delimiter string.
+ * @param str a needed string
+ * @param buf a vector where result will be saved
+ * @param sp_str a delimiter string
+ * @return reference to the result vector
+ */
+std::vector <std::string> & split_string(const std::string & str, std::vector <std::string> & buf, const std::string & sp_str)
+{
+    using namespace std;
+
+    string::size_type pos {};
+    string::size_type initialPos {};
+
+    pos = str.find(sp_str);
+    while( pos != std::string::npos )
+    {
+        buf.push_back(str.substr(initialPos, pos - initialPos));
+        initialPos = pos + 1;
+        pos = str.find(sp_str, initialPos );
+    }
+    buf.push_back(str.substr(initialPos, str.size() - 1 ));
+
+    return buf;
 }

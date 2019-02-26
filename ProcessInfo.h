@@ -78,4 +78,7 @@ int copy_word(char * str_in, char * str_out);
 std::string get_total_mem(void);
 int get_system_info(char * str_out);
 int & proc_stat(int &cpu_total, int &idle);
+std::vector <std::string> & split_string(const std::string & str,
+                                    std::vector <std::string> & buf,
+                                    const std::string & sp_str=" ");
 //int check_process(void);
