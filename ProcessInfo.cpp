@@ -135,7 +135,7 @@ int get_system_info(char * str_out)
 /* копирование первого вхождения слова с цифрами в строке */
 /**
  *
- *  copies sequences of numbers in a string
+ *  copies the first sequences of numbers in a string
  *
  * @param str copy from
  * @param buf copy to
@@ -366,7 +366,7 @@ std::vector <std::string> & split_string(const std::string & str, std::vector <s
     string::size_type initialPos {};
 
     pos = str.find(sp_str);
-    while( pos != std::string::npos )
+    while( pos != string::npos )
     {
         buf.push_back(str.substr(initialPos, pos - initialPos));
         initialPos = pos + 1;
@@ -375,4 +375,87 @@ std::vector <std::string> & split_string(const std::string & str, std::vector <s
     buf.push_back(str.substr(initialPos, str.size() - 1 ));
 
     return buf;
+}
+
+
+/* вычисление количества используемой памяти  */
+/**
+ * calculates current virtual memory, RSS memory in kb and RSS in percentage
+ * @param pid
+ * @param virt_out
+ * @param rss_out
+ * @param rss_percentage
+ * @return the success result code
+ */
+int MEM_usage(const std::string & pid, int & virt_out, int & rss_out, float & rss_percentage)
+{
+    using namespace std;
+    int f_res = -1; // храню результат сложения utime и stime
+    ifstream status_file;
+    string status_path {}; // храню путь к "/path/<pid>/stat"
+    string status_value {}; // значение файла "/path/<pid>/stat"
+
+    if (pid == "None")
+    {
+        *virt_out = -1;
+        *rss_out = -1;
+        return f_res;
+    }
+
+    ostringstream status_path;
+
+    status_path <<"/proc/" << pid << "/status"; // получаю полный путь к файлу stat
+    status_file.open(status_path.str());
+
+    if (status_file.is_open())
+    {
+        char *istr_VmRSS;
+        char *istr_VmSize;
+        char text_buf[100];
+        float rss_perc_temp;
+        while(getline(status_file, status_value))
+        {
+//            fgets(status_value, MAXLEN, status_file); // беру строку с данными
+            getline(status_file, status_value);
+//            istr_VmSize = strstr(status_value, "VmSize");
+//            istr_VmRSS = strstr(status_value, "VmRSS") ;
+            /* копирую точные значение виртуальной и резидентной памяти */
+            if (status_value.find("VmSize") != string::npos)
+            {
+//                copy_digit_words(status_value, text_buf);
+                text_buf = get_num_frm_str(status_value);
+                virt_out = stoi(text_buf);
+            }
+            if (status_value.find("VmRSS") != string::npos)
+            {
+//                copy_digit_words(status_value, text_buf);
+                text_buf = get_num_frm_str(status_value);
+                rss_out = stoi(text_buf);
+                /* вычисляю значения резидентой памяти в процентах, то значение памяти в %, которое показывает htop */
+//                rss_perc_temp = (float(*rss_out) / float(g_total_mem)) * 100;
+                rss_percentage = round(((float(*rss_out) / float(g_total_mem)) * 100)*100) / 100;
+                //printf("MEM kek %d %s\n", *rss_out, *rss_percentage);
+            }
+        }
+        f_res = 1;
+    }
+    else
+    {
+        virt_out = 0;
+        rss_out = 0;
+        rss_percentage = 0;
+        f_res = -1;
+    }
+    status_file.close();
+    return f_res;
+}
+
+/* получение среза текущего потребления памяти (виртуальной и резидентной) по списку процессов */
+void get_mem_section(std::vector <proc_info> *config, int o_virt_arr[], int o_rss_arr[], float o_rss_perc_arr[])
+{
+    for (u_int i = 0; i < config->size() ; ++i)
+    {
+        MEM_usage((config->at(i)).pid, &o_virt_arr[i], &o_rss_arr[i], &o_rss_perc_arr[i]);
+        //printf("out_arr mem %d %d %d %f\n ", i, o_virt_arr[i], o_rss_arr[i], o_rss_perc_arr[i]);
+    }
 }
