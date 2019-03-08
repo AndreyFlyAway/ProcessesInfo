@@ -76,7 +76,7 @@ int main(int argc, char * argv[])
     int o_rss_arr[3] = {0,0,0};
     float o_rss_perc_arr[3] = {0,0,0};
     g_total_mem = get_total_mem();
-//    cout << "Total mem: " << g_total_mem << endl;
+    cout << "Total mem: " << g_total_mem << endl;
     for(int i = 0 ; i < 40 ; i++)
     {
         get_mem_section(g_processes_data, o_virt_arr, o_rss_arr, o_rss_perc_arr);
@@ -441,7 +441,7 @@ int MEM_usage(const std::string & pid, int & virt_out, int & rss_out, float & rs
                 rss_out = stoi(text_buf);
                 /* вычисляю значения резидентой памяти в процентах, то значение памяти в %, которое показывает htop */
                 rss_perc_temp = (float(rss_out) / float(g_total_mem)) * 100;
-                rss_percentage = round((rss_perc_temp * 100)*100) / 100;
+                rss_percentage = round(rss_perc_temp * 100) / 100;
             }
         }
         f_res = 1;
