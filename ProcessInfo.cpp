@@ -42,17 +42,19 @@ const std::string sys_info_list[SYS_FILE_NUM] = {"/proc/sys/kernel/ostype",
 
 int main(int argc, char * argv[])
 {
-    std::string str {"kek 12345"};
-    std::string buf {};
+    using namespace std;
+
+    /* Testing load_config */
+    string str {"kek 12345"};
+    string buf {};
     load_config(g_processes_data, DEFAULT_CONFIG_FILE_PATH);
-
     int out_arr[g_processes_data.size()];
-
     for (u_int i = 0; i < g_processes_data.size() ; i++)
     {
         g_processes_data[i].pid = get_pid(g_processes_data[i].name);
     }
 
+    /* Testing get_cpu_section */
     get_cpu_section(g_processes_data, out_arr);
 
     for (u_int i = 0; i < g_processes_data.size() ; i++)
@@ -61,11 +63,26 @@ int main(int argc, char * argv[])
         std::cout << out_arr[i]  << std::endl;
 
     }
+
+    /* Testing proc_stat */
     int cpu_total {};
     int idle {};
     proc_stat(cpu_total, idle);
-    std::cout << "totatl cpu: " << cpu_total << std::endl;
-    std::cout << "totatl cpu: " << idle << std::endl;
+//    std::cout << "totatl cpu: " << cpu_total << std::endl;
+//    std::cout << "totatl cpu: " << idle << std::endl;
+
+    /* Testing get_mem_section */
+    int o_virt_arr[3] = {0,0,0};
+    int o_rss_arr[3] = {0,0,0};
+    float o_rss_perc_arr[3] = {0,0,0};
+    g_total_mem = get_total_mem();
+//    cout << "Total mem: " << g_total_mem << endl;
+    for(int i = 0 ; i < 40 ; i++)
+    {
+        get_mem_section(g_processes_data, o_virt_arr, o_rss_arr, o_rss_perc_arr);
+        usleep(500000);
+    }
+
 }
 
 /* получение общего количества памяти на машине */
@@ -73,17 +90,18 @@ int main(int argc, char * argv[])
  *  gets total memory that machine has
  * @return total memrory as std::string object, or text "None" if reading /proc/meminfo is faild
  */
-std::string get_total_mem(void)
+long get_total_mem(void)
 {
-    std::ifstream meminfo_file;
-    std::string  meminfo_value {};
-    std::string res {"None"};
+    using namespace std;
+    ifstream meminfo_file;
+    string  meminfo_value {};
+    long res {};
 
     meminfo_file.open(MEMINFO_FOLDER);
     if (meminfo_file.is_open())
     {
-        std::getline(meminfo_file, meminfo_value);
-        res = get_num_frm_str(meminfo_value);
+        getline(meminfo_file, meminfo_value);
+        res = stoi(get_num_frm_str(meminfo_value));
 
     }
     else
@@ -270,7 +288,6 @@ int process_cpu(const std::string &pid_c)
     std::string getline_res;
 
     stat_path << "/proc/" << pid_c << "/stat";
-    std::cout << stat_path.str() << std::endl;
     stat_file.open(stat_path.str()); // открываю файл
     if (stat_file.is_open())
     {
@@ -390,15 +407,17 @@ std::vector <std::string> & split_string(const std::string & str, std::vector <s
 int MEM_usage(const std::string & pid, int & virt_out, int & rss_out, float & rss_percentage)
 {
     using namespace std;
+
     int f_res = -1; // храню результат сложения utime и stime
     ifstream status_file;
-    string status_path {}; // храню путь к "/path/<pid>/stat"
     string status_value {}; // значение файла "/path/<pid>/stat"
+    string text_buf {};
+    float rss_perc_temp {};
 
     if (pid == "None")
     {
-        *virt_out = -1;
-        *rss_out = -1;
+        virt_out = -1;
+        rss_out = -1;
         return f_res;
     }
 
@@ -409,41 +428,29 @@ int MEM_usage(const std::string & pid, int & virt_out, int & rss_out, float & rs
 
     if (status_file.is_open())
     {
-        char *istr_VmRSS;
-        char *istr_VmSize;
-        char text_buf[100];
-        float rss_perc_temp;
         while(getline(status_file, status_value))
         {
-//            fgets(status_value, MAXLEN, status_file); // беру строку с данными
-            getline(status_file, status_value);
-//            istr_VmSize = strstr(status_value, "VmSize");
-//            istr_VmRSS = strstr(status_value, "VmRSS") ;
-            /* копирую точные значение виртуальной и резидентной памяти */
             if (status_value.find("VmSize") != string::npos)
             {
-//                copy_digit_words(status_value, text_buf);
                 text_buf = get_num_frm_str(status_value);
                 virt_out = stoi(text_buf);
             }
             if (status_value.find("VmRSS") != string::npos)
             {
-//                copy_digit_words(status_value, text_buf);
                 text_buf = get_num_frm_str(status_value);
                 rss_out = stoi(text_buf);
                 /* вычисляю значения резидентой памяти в процентах, то значение памяти в %, которое показывает htop */
-//                rss_perc_temp = (float(*rss_out) / float(g_total_mem)) * 100;
-                rss_percentage = round(((float(*rss_out) / float(g_total_mem)) * 100)*100) / 100;
-                //printf("MEM kek %d %s\n", *rss_out, *rss_percentage);
+                rss_perc_temp = (float(rss_out) / float(g_total_mem)) * 100;
+                rss_percentage = round((rss_perc_temp * 100)*100) / 100;
             }
         }
         f_res = 1;
     }
     else
     {
-        virt_out = 0;
-        rss_out = 0;
-        rss_percentage = 0;
+        virt_out = -1;
+        rss_out = -1;
+        rss_percentage = -1;
         f_res = -1;
     }
     status_file.close();
@@ -451,11 +458,15 @@ int MEM_usage(const std::string & pid, int & virt_out, int & rss_out, float & rs
 }
 
 /* получение среза текущего потребления памяти (виртуальной и резидентной) по списку процессов */
-void get_mem_section(std::vector <proc_info> *config, int o_virt_arr[], int o_rss_arr[], float o_rss_perc_arr[])
+void get_mem_section(std::vector <process_info_t> &config, int o_virt_arr[], int o_rss_arr[], float o_rss_perc_arr[])
 {
-    for (u_int i = 0; i < config->size() ; ++i)
+    for (u_int i = 0; i < config.size() ; ++i)
     {
-        MEM_usage((config->at(i)).pid, &o_virt_arr[i], &o_rss_arr[i], &o_rss_perc_arr[i]);
+        MEM_usage((config.at(i)).pid, o_virt_arr[i], o_rss_arr[i], o_rss_perc_arr[i]);
+        std::cout << "PID: " << (config.at(i)).pid << " " << (config.at(i)).name
+                                                   << " VIRT: " << o_virt_arr[i]
+                                                   << " RSS: " << o_rss_arr[i]
+                                                   << " PERCENTEGE: " << o_rss_perc_arr[i] << std::endl;
         //printf("out_arr mem %d %d %d %f\n ", i, o_virt_arr[i], o_rss_arr[i], o_rss_perc_arr[i]);
     }
 }

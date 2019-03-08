@@ -33,6 +33,10 @@
 using namespace log4cplus;
 using namespace log4cplus::helpers;
 
+
+#ifndef PROCESSINFO__H_
+#define PROCESSINFO__H_
+
 #define MAXLEN 1000
 #define MAXPIDLEN 1000
 #define PID_LEN   6
@@ -70,15 +74,16 @@ std::string get_pid(const std::string & proc_name);
 int process_cpu(const std::string &pid_c);
 int resources_usage(std::vector <proc_info> *config, int n_freq, int slepp_t_ms);
 void get_cpu_section(std::vector <process_info_t> &config, int out_arr[]);
-void get_mem_section(std::vector <proc_info> *config, int out_virt_arr[], int out_rss_arr[], float out_rss_perc[]);
+void get_mem_section(std::vector <process_info_t> &config, int o_virt_arr[], int o_rss_arr[], float o_rss_perc_arr[]);
 int MEM_usage(const std::string & pid, int & virt_out, int & rss_out, float & rss_percentage);
 std::string get_num_frm_str(const std::string & str);
 int load_config(std::vector <process_info_t> &config, const std::string & conf_file_path);
 int copy_word(char * str_in, char * str_out);
-std::string get_total_mem(void);
+long get_total_mem(void);
 int get_system_info(char * str_out);
 int & proc_stat(int &cpu_total, int &idle);
 std::vector <std::string> & split_string(const std::string & str,
                                     std::vector <std::string> & buf,
                                     const std::string & sp_str=" ");
 //int check_process(void);
+#endif
