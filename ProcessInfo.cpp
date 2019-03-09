@@ -21,7 +21,7 @@
 #define LOG4CPLUS_CONFIG_NAME "log4cplus_conf.cfg"
 const std::string DEFAULT_CONFIG_FILE_PATH {"config_processes.ini"};
 
-std::vector <proc_info> process_arr;
+//std::vector <proc_info> process_arr;
 std::vector <process_info_t> g_processes_data;
 
 Logger logger;
@@ -55,14 +55,14 @@ int main(int argc, char * argv[])
     }
 
     /* Testing get_cpu_section */
-    get_cpu_section(g_processes_data, out_arr);
-
-    for (u_int i = 0; i < g_processes_data.size() ; i++)
-    {
-        std::cout << g_processes_data[i].name << ": " << g_processes_data[i].pid << std::endl;
-        std::cout << out_arr[i]  << std::endl;
-
-    }
+//    get_cpu_section(g_processes_data, out_arr);
+//
+//    for (u_int i = 0; i < g_processes_data.size() ; i++)
+//    {
+//        std::cout << g_processes_data[i].name << ": " << g_processes_data[i].pid << " ";
+//        std::cout << out_arr[i]  << std::endl;
+//
+//    }
 
     /* Testing proc_stat */
     int cpu_total {};
@@ -72,15 +72,28 @@ int main(int argc, char * argv[])
 //    std::cout << "totatl cpu: " << idle << std::endl;
 
     /* Testing get_mem_section */
-    int o_virt_arr[3] = {0,0,0};
-    int o_rss_arr[3] = {0,0,0};
-    float o_rss_perc_arr[3] = {0,0,0};
-    g_total_mem = get_total_mem();
-    cout << "Total mem: " << g_total_mem << endl;
+//    int o_virt_arr[3] = {0,0,0};
+//    int o_rss_arr[3] = {0,0,0};
+//    float o_rss_perc_arr[3] = {0,0,0};
+//    g_total_mem = get_total_mem();
+//    cout << "Total mem: " << g_total_mem << endl;
+//    for(int i = 0 ; i < 40 ; i++)
+//    {
+//        get_mem_section(g_processes_data, o_virt_arr, o_rss_arr, o_rss_perc_arr);
+//        usleep(500000);
+//    }
     for(int i = 0 ; i < 40 ; i++)
     {
-        get_mem_section(g_processes_data, o_virt_arr, o_rss_arr, o_rss_perc_arr);
-        usleep(500000);
+        resources_usage(g_processes_data, 3, 500000);
+        for (u_int i = 0; i < g_processes_data.size() ; i++)
+            cout << g_processes_data[i].name
+                 << " PID: " << g_processes_data[i].pid
+                 << " CPU: " << g_processes_data[i].cur_CPU_usage
+                 << " MEM: " << g_processes_data[i].mem_in_percent
+                 << " VRS: " <<  g_processes_data[i].virt_mem
+                 << " RSS: " <<  g_processes_data[i].rss_mem
+                 << " CPU Average: " <<  g_processes_data[i].average_CPU
+                 << endl;
     }
 
 }
@@ -277,14 +290,11 @@ std::string get_pid(const std::string & proc_name)
 int process_cpu(const std::string &pid_c)
 {
     int res {-1}; // храню результат сложения utime и stime
-    std::string::size_type pos {};
-    std::string::size_type initialPos {};
 
     std::vector<std::string> stat_values_list;
     std::ifstream stat_file;
     std::ostringstream stat_path; // храню путь к "/path/<pid>/stat"
 
-    std::string stat_value; // значение файла "/path/<pid>/stat"
     std::string getline_res;
 
     stat_path << "/proc/" << pid_c << "/stat";
@@ -458,15 +468,157 @@ int MEM_usage(const std::string & pid, int & virt_out, int & rss_out, float & rs
 }
 
 /* получение среза текущего потребления памяти (виртуальной и резидентной) по списку процессов */
+/**
+ * get current memory consumption for all process by their PID
+ * @param config config vector, where the names and pids of processes are saved
+ * @param o_virt_arr virtual memmry
+ * @param o_rss_arr resident memory
+ * @param o_rss_perc_arr memory in percentage
+ */
 void get_mem_section(std::vector <process_info_t> &config, int o_virt_arr[], int o_rss_arr[], float o_rss_perc_arr[])
 {
     for (u_int i = 0; i < config.size() ; ++i)
     {
         MEM_usage((config.at(i)).pid, o_virt_arr[i], o_rss_arr[i], o_rss_perc_arr[i]);
-        std::cout << "PID: " << (config.at(i)).pid << " " << (config.at(i)).name
-                                                   << " VIRT: " << o_virt_arr[i]
-                                                   << " RSS: " << o_rss_arr[i]
-                                                   << " PERCENTEGE: " << o_rss_perc_arr[i] << std::endl;
-        //printf("out_arr mem %d %d %d %f\n ", i, o_virt_arr[i], o_rss_arr[i], o_rss_perc_arr[i]);
+//        std::cout << "PID: " << (config.at(i)).pid << " " << (config.at(i)).name
+//                                                   << " VIRT: " << o_virt_arr[i]
+//                                                   << " RSS: " << o_rss_arr[i]
+//                                                   << " PERCENTEGE: " << o_rss_perc_arr[i] << std::endl;
     }
+}
+
+/* выичление среднего значения занятого процессрного времени в процентах за период времени */
+int resources_usage(std::vector <process_info_t> &config, const int n_freq, const int sleep_t_ms)
+{
+    using namespace std;
+    int res {0};
+    int proc_num {(int)config.size()}; // количество процессов
+//    struct process_info_t *cur_conf;
+    /* для значения процессора */
+    int cpu_total {0};
+    int pr_cpu_total {0};
+    /* для значение процесса */
+    int proc_val[proc_num];
+    int pr_proc_val[proc_num];
+    int proc_res[proc_num];
+    float res_cpu_cur {0};
+    /* для значение памяти */
+    int virt_mem[proc_num];
+    int rss_mem[proc_num];
+    float rss_in_percent[proc_num];
+    int res_virt[proc_num];
+    int res_rss[proc_num];
+    float res_rss_percent[proc_num];
+    /* для вычиcления полной загруженности */
+    int cpu_idle {0};
+    int pr_cpu_idle {0};
+    //float cpu_load = 0.0;
+    int diff_idle {0}; // для сопутстyвующих вычислений
+    int diff_total {0}; // для сопутстyвующих вычислений
+
+    cpu_load = 0;
+
+    for (int j = 0; j < proc_num; ++j) {
+        virt_mem[j] = 0;
+        rss_mem[j] = 0;
+        proc_res[j] = 0;
+        res_virt[j] = 0;
+        res_rss[j] = 0;
+        res_rss_percent[j] = 0;
+    }
+
+    /* беру самый первый срез */
+    get_cpu_section(config, pr_proc_val);
+    proc_stat(pr_cpu_total, pr_cpu_idle);
+    usleep(sleep_t_ms);
+    for (int i = 0; i < n_freq; ++i) {
+        /* беру первый срез по процесСАМ */
+        get_cpu_section(config, proc_val);
+        get_mem_section(config, virt_mem, rss_mem, rss_in_percent);
+        //printf("out_arr mem %d %f\n", virt_mem[i], rss_in_percent[i]);
+        proc_stat(cpu_total, cpu_idle);
+        for (int j = 0; j < proc_num; ++j) {
+//            cur_conf = &(config.at(j));
+            /* не делаю в данном условии поверку всех значений памяти, т.к. они все беруться из одного метода,
+            и, следовательно, из одного открытого файла */
+            if (not((proc_res[j] < 0) || (rss_mem[j] <= 0))) {
+                res_cpu_cur =
+                        (((float(proc_val[j])) - (float(pr_proc_val[j])))) / (float(cpu_total) - float(pr_cpu_total)) *
+                        100;
+
+                proc_res[j] += res_cpu_cur;
+                res_virt[j] += virt_mem[j];
+                res_rss[j] += rss_mem[j];
+                res_rss_percent[j] += rss_in_percent[j];
+                if ((res_cpu_cur) > (config[j].max_CPU_usage))
+                    config[j].max_CPU_usage = res_cpu_cur;
+
+            }
+        }
+        /* вычисления загруженности по процеCСОРУ */
+        diff_idle = cpu_idle - pr_cpu_idle;
+        diff_total = cpu_total - pr_cpu_total;
+        if (diff_total != 0) {
+
+            cpu_load += (100 * (float(diff_total) - float(diff_idle)) / float(diff_total));
+        } else {
+            cpu_load += 0.0;
+        }
+
+        /* сохраняю первый срез по процесСАМ как второй срез и тоже по процесСОРУ*/
+        memcpy(pr_proc_val, proc_val, sizeof(proc_val));
+        pr_cpu_total = cpu_total;
+        pr_cpu_idle = cpu_idle;
+        usleep(sleep_t_ms);
+
+    }
+
+    /* копирую средние значения параметров в структуру процесса */
+    for (int j = 0; j < proc_num; j++) {
+//        cur_conf = &(config->at(j));
+        if (proc_res[j] < 0 || (rss_mem[j] <= 0)) {
+            config[j].pid = get_pid(config[j].name);
+            config[j].cur_CPU_usage = -1;
+            config[j].virt_mem = -1;
+            config[j].rss_mem = -1;
+            config[j].mem_in_percent = -1;
+        } else {
+
+            config[j].cur_CPU_usage = round(100 * proc_res[j] / float(n_freq)) / 100;
+            config[j].virt_mem = res_virt[j] / n_freq;
+            config[j].rss_mem = res_rss[j] / n_freq;
+            config[j].mem_in_percent = round(100 * res_rss_percent[j] / float(n_freq)) / 100;
+
+            if ((config[j].cur_CPU_usage) > (config[j].max_CPU_usage))
+                config[j].max_CPU_usage = config[j].cur_CPU_usage;
+            /* вычисления среднего значения  */
+            if (average_counter == g_average_n) {
+                /* произвожу вычисления среднего значения */
+                config[j].average_CPU = config[j].sum_CPU_values / g_average_n;
+                config[j].sum_CPU_values = 0;
+            } else {
+                /* сумирую значение */
+                config[j].sum_CPU_values += config[j].cur_CPU_usage;
+            }
+
+        }
+
+    }
+    /* вычисляю всю загруженность */
+    cpu_load = cpu_load / float(n_freq);
+    /*увеличение счетчика для подсчета среднего значения*/
+
+    if (average_counter == g_average_n)
+    {
+        average_counter = 0;
+        res = 1;
+    }
+    else
+    {
+        average_counter++;
+        res = 0;
+
+    }
+
+    return res;
 }
