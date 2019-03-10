@@ -7,38 +7,21 @@
  */
 
 #include "ProcessInfo.h"
-#define PROC_FOLDER   "/proc/"
-#define PROC_NAME                   "/comm"
-#define PROC_STAT_FOLDER   "/proc/stat"
-#define MEMINFO_FOLDER   "/proc/meminfo"
-#define N_FREQ  5
-#define SLEEP_DISCR_MC   200000 // для ожидания во время сбора инофрмации о процессе
-#define SLEEP_PID_ERROR_MC   300000 // время оиждания между попытками найти PID,
-#define LOGGER_NAME "log"
-#define STATUS_FILE_LINES 41
-#define SYS_FILE_NUM 4
 
-#define LOG4CPLUS_CONFIG_NAME "log4cplus_conf.cfg"
-const std::string DEFAULT_CONFIG_FILE_PATH {"config_processes.ini"};
 
-//std::vector <proc_info> process_arr;
 std::vector <process_info::process_info_t> g_processes_data;
 
+#define LOG4CPLUS_CONFIG_NAME "log4cplus_conf.cfg"
 Logger logger;
 
 /* для хранения настроек */
-long int g_n_freq {}; // количество интервалов
-long int g_sleep_discr {}; // время между интервалами
-long int g_average_n = {}; // количество интервалов, которые будет учитываться для вычисления среднего значение
-int average_counter {}; // для подсчте среднего значения
-float cpu_load {1.1};
-long g_total_mem {}; /* для хранения количества памяти на машине */
+static long int g_n_freq {}; // количество интервалов
+static long int g_sleep_discr {}; // время между интервалами
+static long int g_average_n = {}; // количество интервалов, которые будет учитываться для вычисления среднего значение
+static int average_counter {}; // для подсчте среднего значения
+static float cpu_load {1.1};
+static long g_total_mem {}; /* для хранения количества памяти на машине */
 
-/* list of file in /proc/sys/kernel/, they are used for reading information about distributive */
-const std::string sys_info_list[SYS_FILE_NUM] = {"/proc/sys/kernel/ostype",
-                                                 "/proc/sys/kernel/hostname",
-                                                 "/proc/sys/kernel/osrelease",
-                                                 "/proc/sys/kernel/version", };
 
 int main(int argc, char * argv[]) {
     using namespace std;
@@ -177,9 +160,7 @@ namespace process_info {
                         processes.end());
         while (pos2 != -1) {
             pos2 = processes.find(",", pos1);
-//        processes.copy(temp_val.name, pos2-pos1, pos1);
             temp_val.name = processes.substr(pos1, pos2 - pos1);
-//        std::cout << temp_val.name << std::endl;
             pos1 = pos2 + 1;
             config.push_back(temp_val);
             temp_val.name.clear();
@@ -317,7 +298,6 @@ namespace process_info {
 
                     break;
                 }
-//            getline(proc_file, proc_stat_value);
             }
         }
         proc_file.close();

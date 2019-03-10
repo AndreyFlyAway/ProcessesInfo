@@ -1,16 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <dirent.h>
-#include <ctype.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <string>
 #include <sstream>
-#include <iostream>
 #include <vector>
-#include <math.h>
 #include <iostream>
 #include <fstream>
 
@@ -43,6 +37,24 @@ namespace process_info
     #define MAXLEN 1000
     #define MAXPIDLEN 1000
     #define PID_LEN   6
+    #define PROC_FOLDER   "/proc/"
+    #define PROC_NAME                   "/comm"
+    #define PROC_STAT_FOLDER   "/proc/stat"
+    #define MEMINFO_FOLDER   "/proc/meminfo"
+    #define N_FREQ  5
+    #define SLEEP_DISCR_MC   200000 // для ожидания во время сбора инофрмации о процессе
+    #define SLEEP_PID_ERROR_MC   300000 // время оиждания между попытками найти PID,
+    #define LOGGER_NAME "log"
+    #define STATUS_FILE_LINES 41
+    #define SYS_FILE_NUM 4
+
+    /* list of file in /proc/sys/kernel/, they are used for reading information about distributive */
+    const std::string sys_info_list[SYS_FILE_NUM] = {"/proc/sys/kernel/ostype",
+                                                     "/proc/sys/kernel/hostname",
+                                                     "/proc/sys/kernel/osrelease",
+                                                     "/proc/sys/kernel/version", };
+
+    const std::string DEFAULT_CONFIG_FILE_PATH {"config_processes.ini"};
 
     /* структура для хранения памят иданных о процессе */
     struct proc_info
@@ -88,7 +100,7 @@ namespace process_info
     std::vector <std::string> & split_string(const std::string & str,
                                         std::vector <std::string> & buf,
                                         const std::string & sp_str=" ");
-//int check_process(void);
+    //int check_process(void);
 }
 
 #endif
