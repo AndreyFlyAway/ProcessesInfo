@@ -56,6 +56,14 @@ namespace process_info
 
     const std::string DEFAULT_CONFIG_FILE_PATH {"config_processes.ini"};
 
+    static long int g_n_freq {}; // количество интервалов
+    static long int g_sleep_discr {}; // время между интервалами
+    static long int g_average_n = {}; // количество интервалов, которые будет учитываться для вычисления среднего значение
+
+    static int average_counter {}; // для подсчте среднего значения
+    static float cpu_load {1.1};
+    static long g_total_mem {}; /* для хранения количества памяти на машине */
+
     /* структура для хранения памят иданных о процессе */
     struct proc_info
     {

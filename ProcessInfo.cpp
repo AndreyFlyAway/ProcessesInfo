@@ -15,12 +15,7 @@ std::vector <process_info::process_info_t> g_processes_data;
 Logger logger;
 
 /* для хранения настроек */
-static long int g_n_freq {}; // количество интервалов
-static long int g_sleep_discr {}; // время между интервалами
-static long int g_average_n = {}; // количество интервалов, которые будет учитываться для вычисления среднего значение
-static int average_counter {}; // для подсчте среднего значения
-static float cpu_load {1.1};
-static long g_total_mem {}; /* для хранения количества памяти на машине */
+
 
 
 int main(int argc, char * argv[]) {
@@ -142,6 +137,11 @@ namespace process_info {
      * @return 1 in succusses, 0 otherwise
      */
     int load_config(std::vector<process_info_t> &config, const std::string &conf_file_path) {
+        extern long int g_n_freq;
+        extern long int g_sleep_discr;
+        extern long int g_average_n;
+
+
         INIReader reader(conf_file_path);
         struct process_info_t temp_val{};
         int pos1{};
@@ -407,8 +407,11 @@ namespace process_info {
         }
     }
 
-/* выичление среднего значения занятого процессрного времени в процентах за период времени */
+    /* выичление среднего значения занятого процессрного времени в процентах за период времени */
+    // FIXME: why in the signature do I use arguments n_freq and n_freq, if values I put in the global variables g_sleep_discr etc.?
     int resources_usage(std::vector<process_info_t> &config, const int n_freq, const int sleep_t_ms) {
+        extern long int g_average_n;
+
         using namespace std;
         int res{0};
         int proc_num{(int) config.size()}; // количество процессов
